@@ -153,5 +153,12 @@ xdata_clipped = xdata.rio.clip_box(minx, miny, maxx, maxy)
 xdata.to_netcdf('test_xarray2.nc')
 
 # %%
-# plot an example ()
-xdata_clipped['APCP_surface_01_hour_acc_fcst'][fhr,:,:].plot(col='time', col_wrap=4)
+# plot an example (first 24 hours in series for precip)
+example_tseries = xdata_clipped['APCP_surface_01_hour_acc_fcst'][fhr, :, :]
+example_tseries.plot(col='time', col_wrap=4)
+
+# %%
+# plot an example (first 24 hours in series for precip)
+vname = list(vnames_toget)[4]
+example_tseries = xdata_clipped[vname][fhr,:,:]
+example_tseries.plot(col='time', col_wrap=4)
