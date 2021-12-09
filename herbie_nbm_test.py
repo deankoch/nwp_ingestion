@@ -47,6 +47,7 @@
 import pandas
 import geopandas
 import xarray
+import rioxarray
 
 # Herbie package for downloading GRIBs
 from herbie.archive import Herbie
@@ -70,6 +71,10 @@ vnames_all = get_nbm('2021-01-01')
 # based on: https://vlab.noaa.gov/web/mdl/nbm-wx-elements
 short_names = {'DSWRF', 'RH', 'TMP', 'APCP', 'WIND'}
 
+# Note that in general, "short_name" does not uniquely identify a layer in
+# a file. There can be many variables with the same short name, but
+# differing in some other attribute (often a vertical or temporal "level").
+
 # print the layers available for these short names
 vnames_short = vnames_all[vnames_all['variable'].isin(short_names)]
 print(vnames_short['name'])
@@ -83,7 +88,7 @@ print(vnames_short['name'])
 # precip for a particular date.
 # variable names from on vnames_all
 vnames_toget = {
-    'TMP_surface_1_hour_fcst',
+    'TMP_2_m_above_ground_1_hour_fcst',
     'APCP_surface_01_hour_acc_fcst',
     'RH_2_m_above_ground_1_hour_fcst',
     'DSWRF_surface_1_hour_fcst',
@@ -94,10 +99,9 @@ vnames_toget = {
 # dates to compile
 dates = pandas.date_range('2021-11-06', '2021-11-08', freq='D')
 
-# We will want to download all hours with fhr=range(0,24). For now I keep the
-# request small with only two hours
+# We will want to download all hours with fhr = [0, 1, ..., 23].
 # forecast release time of day: integer or list with elements in 0,..23
-fhr = [0, 12]
+fhr = list(range(0, 24))
 
 # %%
 # get the data and open as xarray
@@ -118,24 +122,36 @@ xdata
 # enc_template = dict(zlib=True, complevel=5)
 # enc_dict = {var: enc_template for var in xarray_output.data_vars}
 xdata.to_netcdf('test_xarray.nc')
+
 # check that the file can be reloaded
 x = xarray.open_dataset('test_xarray.nc', decode_coords=True)
+print(x)
 
-# It's not clear how to name the layers in a GRIB file. Layers typically
-# have dozens to hundreds of attributes, many of which are identical. The
-# obvious solution would be to concatenate a selection of keyword attributes
-# like "short_name" and "level", but I haven't found a combination that
-# yields simple and unique names accross the whole file. This makes it
-# challenging to write code that will work for any GRIB file
-# 
-# Why not just refer to a layer by its name? Because GRIB layers don't have
-# unique names! They are numbered, but the order and content varies from
-# file to file. Instead, in each GRIB layer you will find dozens to hundreds
-# of attributes. We can't rely on any of these to be unique across layers.
-#
-# Note that in general, "short_name" does not uniquely identify a layer in
-# a file. There can be many variables with the same short name, but
-# differing in some other attribute (often a vertical or temporal "level").
+# %%
+# plot an example (temperature on the first time in the series)
+x['TMP_2_m_above_ground_1_hour_fcst'][0,:,:].plot()
 
 
+# %%
+'''----------------- Area of interest ----------------'''
 
+# define the polygon file to use as a boundary for area of interest
+aoi_polygon_dir = 'D:/UYRW_data/side_projects/python_NWP/data/input_example/'
+aoi_polygon_filename = 'UYRW_boundary_25kmpadding.geojson'
+aoi_polygon_path = aoi_polygon_dir + aoi_polygon_filename
+
+# open the polygon and transform (as needed) to match projection of xdata 
+aoi_polygon = geopandas.read_file(aoi_polygon_path).to_crs(xdata.rio.crs)
+aoi_bbox = aoi_polygon.bounds
+minx = aoi_bbox['minx']
+miny = aoi_bbox['miny']
+maxx = aoi_bbox['maxx']
+maxy = aoi_bbox['maxy']
+
+# clip to AOI and save a copy as netcdf
+xdata_clipped = xdata.rio.clip_box(minx, miny, maxx, maxy)
+xdata.to_netcdf('test_xarray2.nc')
+
+# %%
+# plot an example ()
+xdata_clipped['APCP_surface_01_hour_acc_fcst'][fhr,:,:].plot(col='time', col_wrap=4)
