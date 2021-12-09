@@ -66,6 +66,10 @@ print(vnames_short['name'])
 # %%
 # define layers, date range and time interval to fetch
 
+# note that the APCP variable is an aggregated precip value for the previous
+# hour - this means we really need hourly data for it to be useful going
+# forward. eg we would take the sum over the 24 hours of the day to get total
+# precip for a particular date.
 # variable names from on vnames_all
 vnames_toget = {
     'TMP_surface_1_hour_fcst',
@@ -74,15 +78,25 @@ vnames_toget = {
     'DSWRF_surface_1_hour_fcst',
     'WIND_10_m_above_ground_1_hour_fcst'}
 
+# for now I use a few recent dates as examples. Ultimately it would be good to
+# run this on the complete available time series (2021-01-01 to present)
 # dates to compile
 dates = pandas.date_range('2021-11-06', '2021-11-08', freq='D')
 
+# We will want to download all hours with fhr=range(0,24). For now I keep the
+# request small with only two hours
 # forecast release time of day: integer or list with elements in 0,..23
 fhr = [0, 12]
 
 # %%
 # get the data and open as xarray
 xdata = get_nbm(dates, vnames_toget, fhr=fhr)
+# this function call does a lot of things in sequence - it uses Herbie to
+# download the GRIBs (if they aren't in the local storage path), loads them
+# and assigns missing attributes/projection info, then combines them into a
+# single xarray dataset with a time axis
+
+# print the resulting data object
 xdata
 
 # %%
