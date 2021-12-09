@@ -1,0 +1,38 @@
+# INSTALLATION
+# 
+# I am using Windows 10 with miniconda to manage python environments and
+# dependencies and VS Code as my IDE. These last two have some compatibility
+# issues (see https://github.com/microsoft/vscode-python/issues/11638) that
+# that can be resolved by switching the default terminal in VS Code from
+# powershell to cmd.exe (F1 > Terminal: Select default profile). I then
+# install an environment for working with Herbie by copying its YAML file
+# (listing dependencies and versions) from the github repository. 
+#
+# Notes
+#
+# In step 3, replace {githubURL} with the current URl. As of Nov 2021, this is:
+# https://raw.githubusercontent.com/blaylockbk/Herbie/master/environment.yml
+#
+# Before steps 5-7, you may need to add the following directory to your system
+# PATH to help windows find conda.exe: C:\Users\{username}\miniconda3\condabin
+#
+# Installation steps:
+#
+# 1. install miniconda3 (for Python 3.8+)
+# 2. open VS Code to project directory (and set default terminal to cmd)
+# 3. open a (cmd) terminal at this directory
+# 4. copy the dependencies YAML with "curl -o environment.yml {githubURL}"
+# 5. set up paths with "conda init"
+# 6. create the environment with "conda env create -f environment.yml"
+# 7. (optionally) update with "conda env update -f environment.yml"
+#
+# The new conda environment is named "herbie" (this name is on the first line
+# of the downloaded YAML file). Make sure to select this environment when
+# working on the project (in VS Code: F1 > Select Interpreter). This should
+# cause VS Code to activate the environment automatically whenever a new
+# shell (cmd) is opened, or when sending code to the python interpreter.
+#
+# Install modules using "conda install ..." in the activated environment
+#
+# see also https://code.visualstudio.com/docs/python/python-tutorial
+# and https://blaylockbk.github.io/Herbie/_build/html/

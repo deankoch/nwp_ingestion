@@ -1,0 +1,47 @@
+name: herbie
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip
+  - curl
+  - toml
+  - requests
+  - numpy
+  - matplotlib
+  - cartopy
+  - jupyter
+  - jupyterlab
+  - netcdf4
+  - pandas
+  - geopandas
+  - scipy
+  - metpy
+  - xarray
+  - pyproj
+  - h5py
+  - pygrib
+  - cfgrib
+  - pylint
+  - s3fs
+  - zarr
+  #- wgrib2  # ONLY AVAILABLE ON LINUX. Comment if not using Linux.
+
+  # Formatter (I prefer Black at the moment)
+  - black
+  - autopep8
+
+  # Testing
+  - pytest
+
+  - pip:
+      # Development Version from GitHub
+      - git+https://github.com/blaylockbk/Herbie.git
+      # *or* the latest release from PyPI
+      #- herbie-data    # Release Version
+
+      # Borrow some tools from my garage
+      - git+https://github.com/blaylockbk/Carpenter_Workshop.git
+
+    # Reading bufr files (beta)
+    #- pdbufr  # Sooo, eccodes does not support prepbufr format
