@@ -1,14 +1,28 @@
-# Test download from NOAA's High Resolution Rapid Refresh  
+# Test download from NOAA's National Blended Model (NBM)
 # Based on: readme tutorial at Herbie (AKA "hrrrb") package github repository
 # https://blaylockbk.github.io/Herbie/_build/html/ (visited 30/11/2021)
 #
 # DESCRIPTION
 #
-# The script loads a polygon (path supplied by the user) and determines
-# the corresponding GRIB files to download. These rasters are opened and
-# a mosaic is created, clipped, and masked, for a selection of model variables.
-# The result is then saved in two files: a GeoJSON containing the grid point
-# locations, and a JSON containing the data in name-value pairs.
+# The script downloads forecast data for the specified times/dates/variables
+# then imports it into python as an xarray dataset, where it can be more easily
+# converted into netCDF, ZARR, geoJSON, or ASCII tables (as needed by SWAT).
+# 
+# INSTALLATION
+#
+# See herbie_install.txt for instructions on getting started in Windows 10
+#
+# WHAT'S NEXT 
+#
+# We may want to load a polygon (path supplied by the user) and crop the
+# raster layers to its extent. Wote that we can't download geographical subsets
+# of the GRIBs, so ultimately we are stuck downloading for the full continental
+# USA, and we may wish to keep these files archived in case we want to look at
+# other study areas in the future.
+#
+# For the next step in the SWAT+ workflow I will want to save the cropped data
+# as GeoJSON (containing the grid point locations), and a JSON containing the
+# data in name-value pairs (by date?).
 #
 # TODO: Input/output variables used in this script
 #
@@ -17,10 +31,7 @@
 # aoi_polygon_path      local path to input polygon (GeoJSON) file
 # ---------------------------------------------------------------------------
 #
-# INSTALLATION
-#
-# See herbie_install.txt for instructions on getting started in Windows 10
-#
+
 # %%
 #
 # There are two essential pieces of information we need from the GRIB files:
@@ -122,14 +133,9 @@ x = xarray.open_dataset('test_xarray.nc', decode_coords=True)
 # file to file. Instead, in each GRIB layer you will find dozens to hundreds
 # of attributes. We can't rely on any of these to be unique across layers.
 #
-#
 # Note that in general, "short_name" does not uniquely identify a layer in
 # a file. There can be many variables with the same short name, but
 # differing in some other attribute (often a vertical or temporal "level").
-#
-# In this case we are looking for specific variable short names, paired with
-# specific height (m) levels, and in the case of precip, a specific time
-# period (0-1 hours). This should yield a unique set of 5 variables found
 
 
 
