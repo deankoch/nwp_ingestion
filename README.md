@@ -1,5 +1,7 @@
-# swat
+# nwp_ingestion
 UYRW SWAT+ project: NWP integration
+
+Herbie-based scripts for handling weather forecast data
 
 
 Overview: 
