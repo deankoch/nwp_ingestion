@@ -56,8 +56,8 @@ from herbie.archive import Herbie
 from helpers import H2x, get_variable_names, get_nbm
 
 # %%
-# browse the NBM collection
-#
+'''----------------- browse the NBM collection ----------------'''
+
 # I'm using my own function instead of Herbie.xarray to open the GRIB files
 # because there seems to be a bug in cfgrib (the module that Herbie uses)
 # that causes problems with NBM. I think this has to do with non-uniqueness of
@@ -104,6 +104,8 @@ dates = pandas.date_range('2021-11-06', '2021-11-08', freq='D')
 fhr = list(range(0, 24))
 
 # %%
+'''----------------- Download and import data ----------------'''
+
 # get the data and open as xarray
 xdata = get_nbm(dates, vnames_toget, fhr=fhr)
 # this function call does a lot of things in sequence - it uses Herbie to
@@ -126,6 +128,10 @@ xdata.to_netcdf('test_xarray.nc')
 # check that the file can be reloaded
 x = xarray.open_dataset('test_xarray.nc', decode_coords=True)
 print(x)
+
+
+
+
 
 # %%
 # plot an example (temperature on the first time in the series)

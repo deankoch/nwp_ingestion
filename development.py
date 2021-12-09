@@ -1,5 +1,6 @@
 import fsspec
 
+# in case we need to check which files/directories are there on AWS
 def get_times(date=None, fhr=None, product='co'):
     fs = fsspec.filesystem('s3', anon=True)
     
