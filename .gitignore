@@ -49,5 +49,8 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+# R test code
+R/
+
 # test files
 test_xarray*.nc
