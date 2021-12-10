@@ -461,7 +461,7 @@ def get_nbm(
 
     Arguments
     ----------
-    date_string = the requested forecast release date, as a string
+    dates = the requested forecast release dates, as a string
     fhr = a list of forecast release hours to download
     vnames_toget = a set of requested variable name strings
     fxx = (integer) forecast hour, one of 1, ... 23

@@ -99,162 +99,56 @@ vnames_all = get_nbm_variable_names(time_dict)
 print(vnames_all['name'])
 # note that get_nbm_variable_names sets defaults fhr=0, fxx=1, product='co'
 
+# get_nbm_variable_names builds variable names based on 3 fields in the
+# GRIB index file, including "variable" (which is not itself unique!) and
+# level. This creates a unique naming scheme for the NBM GRIBs. I don't know
+# enough about GRIBs yet to know if this will work for other datasets
+
 # %%
 '''----------------- Identify layers/times of interest ----------------'''
 
 # We are mostly interested in the subset of variables that can be passed as
-# input to SWAT+. We can focus on those by specifying the short names listed
-# below (based on: https://vlab.noaa.gov/web/mdl/nbm-wx-elements)
+# input to SWAT+. We can focus on those by specifying the short "variable"
+# names listed below (based on: https://vlab.noaa.gov/web/mdl/nbm-wx-elements)
 short_names = {'DSWRF', 'RH', 'TMP', 'WIND', 'APCP'}
 vnames_short = vnames_all[vnames_all['variable'].isin(short_names)]
 print(vnames_short['name'])
 
-# In general, "short_name" does not uniquely identify a layer in
-# a file. There can be many variables with the same short name, but
+# This shrinks the table to an understandable length - we can see that
+# there are often several variables with the same short name, but
 # differing in some other attribute (often a vertical "level").
 # for example TMP (temperature) has two vertical levels (surface and 2m)
 # and a third layer with uncertainty data
 vnames_short[vnames_short['variable']=='TMP']
 print(vnames_short['name'])
+# we will use the 2m TMP as temperature inputs for SWAT ("surface"
+# would be better but after downloading it I found it was all NaNs??).
 
-# get_nbm_variable_names builds variable names based on 3 fields in the
-# GRIB index file, including name (which is not itself unique!) and level.
-# This creates a unique naming scheme for the NBM GRIBs. I don't know enough
-# about GRIBs yet to know if this will work for other datasets
-
-# We can specify the desired levels (2m and 10m) easily enough for all of the
-# variables except APCP (accumulated precipitation).
-# 
-# APCP has a temporal level that depends on the forecast hour. Up to fxx=36,
-# there is only one level, the accumulation over the preceeding hour...
-time_dict.update({'fxx': 35})
-vnames_check = get_nbm_variable_names(time_dict)
-vnames_check[vnames_check['variable']=='APCP']
-# ...This is good because the forecast interval is hourly up to fxx=36...
-
-# ...But in later forecast hours the one-hour accumulation is less useful,
-# because it only describes what happens in one of the three preceeding hours
-# between forecasts. What we really need is the 3-hour accumulated precip, but
-# this is not found in all subsequent files!
-#
-# Instead what we find is that every six hours, the forecast includes a 6-hour
-# precip accumulation variable. eg looking at fxx=42, we have the uncertainty
-# layer, the 1-hour accumulation, and the 6-hour accumulation:
-time_dict.update({'fxx': 42})
-vnames_check = get_nbm_variable_names(time_dict)
-vnames_toprint = vnames_check[vnames_check['variable']=='APCP']
-print(vnames_toprint[['variable', 'forecast_time']])
-
-# So if we fetch the hourly forecasts up to fxx=36, then the six-hourly
-# forecasts beyond that (up to fxx=264), we will end up with a time series
-# without gaps that can be used to stitch together a daily accumulation.
-# Unfortunately this means discarding half of the 3-hourly forecasts.
+# Notice the variable names depend on the forecast hour (fxx). For example
+# the following are valid variable names for fxx=1 hour forecasts:
+vnames_toget = {
+    'TMP_2_m_above_ground_1_hour_fcst',
+    'APCP_surface_01_hour_acc_fcst',
+    'RH_2_m_above_ground_1_hour_fcst',
+    'DSWRF_surface_1_hour_fcst',
+    'WIND_10_m_above_ground_1_hour_fcst'}
 
 # %%
-'''----------------- Example: building an fxx=1 archive ----------------'''
-
+'''----------------- Example: build an fxx=1 archive  ----------------'''
+# Given the variable names defined above, let's download and look at some data
+# using the get_nbm function.
+#
 # In SWAT+ we need a fairly long time series to prime the model (building up
 # soil water and snowpack, etc) before feeding it future forecast data. For
-# this purpose we will build an uninterrupted archival time series of
-# 1-hour-ahead forecasts (fxx=1).
-# 
-# Later on, we can append the latest forecasts (on current date, fxx > 1) to
-# extend this time series 10 days into the future.
+# this purpose we will build an archival time series of 1-hour-ahead forecasts
+# (fxx=1) using the variable names defined above (vnames_toget).
 #
-# We saw earlier that variable names, Since the fxx is constant, every forecast request will be for the same
-# five variable names:
-
-# variable names from on vnames_all
-vnames_toget = {
-    'TMP_2_m_above_ground_1_hour_fcst',
-    'APCP_surface_01_hour_acc_fcst',
-    'RH_2_m_above_ground_1_hour_fcst',
-    'DSWRF_surface_1_hour_fcst',
-    'WIND_10_m_above_ground_1_hour_fcst'}
-
-
-
-# %%
-H = Herbie('2021-10-01 00:00', fhr=23, fxx=48, model='nbm', product='co')
-vnames_all = get_variable_names(H)
-short_names = {'DSWRF', 'RH', 'TMP', 'APCP', 'WIND'}
-vnames_short = vnames_all[vnames_all['variable'].isin(short_names)]
-print(vnames_short['name'])
-
-date = '2021-10-01'
-
-# identify the latest available forecast release time
-fhr_avail = get_nbm_times(date)
-fhr = fhr_avail[-1]
-
-# identify the available forecast hours
-fxx_avail = get_nbm_times(date, fhr)
-
-# identify the timestep separating a given forecast hour with the previous
-fxx_step = np.concatenate([np.array([1]), np.diff(np.array(fxx_avail))])
-
-np.hstack([fxx_avail, fxx_step])
-zip(fxx_avail, fxx_step)
-res="\n".join("{} {}".format(x, y) for x, y in zip(fxx_avail, fxx_step))
-print(res)
-
-# %%
-'''----------------- browse the NBM collection ----------------'''
-
-# I'm using my own function instead of Herbie.xarray to open the GRIB files
-# because there seems to be a bug in cfgrib (the module that Herbie uses)
-# that causes problems with NBM. I think this has to do with non-uniqueness of
-# variable names in the NBM GRIBs.
-
-# define a herbie object, then copy the table of variable names
-H = Herbie('2021-01-01', fhr=0, fxx=1, model='nbm', product='co')
-vnames_all = get_variable_names(H)
-print(vnames_all)
-
-# We have a shorthand for this in the get_nbm function. When it is passed
-# only a date, it calls get_variable_names on the Herbie object with
-# fhr=0, fxx=1 and returns the table  
-get_nbm('2021-01-01')
-
-# note that some dates/times may only include subset of these 72 variables
-
-# define a set of variables of interest
-# based on: https://vlab.noaa.gov/web/mdl/nbm-wx-elements
-short_names = {'DSWRF', 'RH', 'TMP', 'APCP', 'WIND'}
-
-
-
-# print the layers available for these short names
-vnames_short = vnames_all[vnames_all['variable'].isin(short_names)]
-print(vnames_short['name'])
-
-# %%
-# define layers, date range and time interval to fetch
-
-# note that the APCP variable is an aggregated precip value for the previous
-# hour - this means we really need hourly data for it to be useful going
-# forward. eg we would take the sum over the 24 hours of the day to get total
-# precip for a particular date.
-# variable names from on vnames_all
-vnames_toget = {
-    'TMP_2_m_above_ground_1_hour_fcst',
-    'APCP_surface_01_hour_acc_fcst',
-    'RH_2_m_above_ground_1_hour_fcst',
-    'DSWRF_surface_1_hour_fcst',
-    'WIND_10_m_above_ground_1_hour_fcst'}
-
-# for now I use a few recent dates as examples. Ultimately it would be good to
-# run this on the complete available time series (2021-01-01 to present)
-# dates to compile
-dates = pd.date_range('2021-11-06', '2021-11-08', freq='D')
-
-# We will want to download all hours with fhr = [0, 1, ..., 23].
-# forecast release time of day: integer or list with elements in 0,..23
-fhr = list(range(0, 24))
-
-
-# %%
-'''----------------- Download and import data ----------------'''
+# We will ultimately want to store all of the hourly forecasts,
+# fhr = [0, 1, ... 23], from the earliest available date to present. But for
+# illustration purposes we stick to just the earliest 2 dates:
+example_enddate = earliest_date + datetime.timedelta(2)
+dates = pd.date_range(earliest_date, example_enddate, freq='D')
+fhr = list(range(0, 23+1))
 
 # get the data and open as xarray
 xdata = get_nbm(dates, vnames_toget, fhr=fhr)
@@ -264,9 +158,8 @@ xdata = get_nbm(dates, vnames_toget, fhr=fhr)
 # single xarray dataset with a time axis
 
 # print the resulting data object
-xdata
+print(xdata)
 
-# %%
 # save to netCDF
 # note: setting encoding fields to specify compression using gzip causes
 # problems with the CRS fields in the netCDF file (files could be loaded
@@ -279,24 +172,17 @@ xdata.to_netcdf('test_xarray.nc')
 x = xarray.open_dataset('test_xarray.nc', decode_coords=True)
 print(x)
 
-# %%
-# 
-
-H = Herbie('2021-10-01 00:00', fhr=0, fxx=2, model='nbm', product='co')
-
-
-
-
-# %%
 # plot an example (temperature on the first time in the series)
 x['TMP_2_m_above_ground_1_hour_fcst'][0,:,:].plot()
 
-
 # %%
 '''----------------- Area of interest ----------------'''
+# It's not possible to get a geographic subset from the GRIB2 files, so we
+# are stuck downloading the entire continental USA. However we can clip
+# that data very easily once it's opened as xarray:
 
 # define the polygon file to use as a boundary for area of interest
-aoi_polygon_dir = 'D:/UYRW_data/side_projects/python_NWP/data/input_example/'
+aoi_polygon_dir = 'D:/UYRW_data/side_projects/NWP_ingestion/testdata/input_example/'
 aoi_polygon_filename = 'UYRW_boundary_25kmpadding.geojson'
 aoi_polygon_path = aoi_polygon_dir + aoi_polygon_filename
 
@@ -322,3 +208,35 @@ example_tseries.plot(col='time', col_wrap=4)
 vname = list(vnames_toget)[4]
 example_tseries = xdata_clipped[vname][fhr,:,:]
 example_tseries.plot(col='time', col_wrap=4)
+
+
+# %%
+'''----------------- Example: APCP and fxx>1 ----------------'''
+
+# We can specify the desired levels (2m and 10m) easily enough for all of the
+# variables except APCP (accumulated precipitation).
+
+# APCP has a temporal level that depends on the forecast hour. Up to fxx=36,
+# there is only one level, the accumulation over the preceeding hour...
+time_dict.update({'fxx': 35})
+vnames_check = get_nbm_variable_names(time_dict)
+vnames_check[vnames_check['variable']=='APCP']
+# ...This is good because the forecast interval is hourly up to fxx=36...
+
+# ...But in later forecast hours the one-hour accumulation is less useful,
+# because it only describes what happens in one of the three preceeding hours
+# between forecasts. What we really need is the 3-hour accumulated precip, but
+# this is not found in all subsequent files!
+#
+# Instead what we find is that every six hours, the forecast includes a 6-hour
+# precip accumulation variable. eg looking at fxx=42, we have the uncertainty
+# layer, the 1-hour accumulation, and the 6-hour accumulation:
+time_dict.update({'fxx': 42})
+vnames_check = get_nbm_variable_names(time_dict)
+vnames_toprint = vnames_check[vnames_check['variable']=='APCP']
+print(vnames_toprint[['variable', 'forecast_time']])
+
+# So if we fetch the hourly forecasts up to fxx=36, then the six-hourly
+# forecasts beyond that (up to fxx=264), we will end up with a time series
+# without gaps that can be used to stitch together a daily accumulation.
+# Unfortunately this means discarding half of the 3-hourly forecasts.
