@@ -63,15 +63,23 @@ from helpers import H2x, get_variable_names, get_nbm
 # that causes problems with NBM. I think this has to do with non-uniqueness of
 # variable names in the NBM GRIBs.
 
-# fetch a table of variables for the NBM
-vnames_all = get_nbm('2021-01-01')
-# note that some dates/times will have only a subset of these
+# define a herbie object, then copy the table of variable names
+H = Herbie('2021-01-01', fhr=0, fxx=1, model='nbm', product='co')
+vnames_all = get_variable_names(H)
+print(vnames_all)
+
+# We have a shorthand for this in the get_nbm function. When it is passed
+# only a date, it calls get_variable_names on the Herbie object with
+# fhr=0, fxx=1 and returns the table  
+get_nbm('2021-01-01')
+
+# note that some dates/times may only include subset of these 72 variables
 
 # define a set of variables of interest
 # based on: https://vlab.noaa.gov/web/mdl/nbm-wx-elements
 short_names = {'DSWRF', 'RH', 'TMP', 'APCP', 'WIND'}
 
-# Note that in general, "short_name" does not uniquely identify a layer in
+# In general, "short_name" does not uniquely identify a layer in
 # a file. There can be many variables with the same short name, but
 # differing in some other attribute (often a vertical or temporal "level").
 
@@ -129,6 +137,8 @@ xdata.to_netcdf('test_xarray.nc')
 x = xarray.open_dataset('test_xarray.nc', decode_coords=True)
 print(x)
 
+# %%
+# 
 
 
 
