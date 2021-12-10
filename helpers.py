@@ -20,9 +20,66 @@ import pandas as pd
 import xarray
 
 
-def get_variable_names(H, join=True):
+def get_nbm_times(date=None, fhr=None, product='co'):
     """
-    Returns a list of variable names and regexp to use as searchString
+    Scan the AWS collection for filenames, returning the available dates,
+    forecast release times, or forecast hours (depending on the arguments
+    dates and fhr)
+
+    If date is not supplied, the function returns all dates for
+    which there is a subdirectory in the AWS bucket (as a list of strings).
+
+    If date but not fhr is supplied, the function returns a list of integers
+    corresponding to the forecast time subdirectories found in /blend.{date}
+
+    If both date and fhr are supplied, the function returns a list of integers
+    corresponding to all forecast hours for which there is a *.grib2.idx (GRIB
+    index) file. These files should be accesible using Herbie.
+
+    Arguments
+    ----------
+    date = any date-like object understood by pd.to_datetime
+    fhr = any object coercible to an integer by int(). Must be in [0,...23]
+    product = one of 'co', 'ak', etc
+
+    Return
+    ----------
+    A list of date strings or integers (see above)
+    """
+    # define the bucket name and a directory prefix to search for
+    bucket_prefix = 'noaa-nbm-grib2-pds' + '/blend.'
+
+    # initialize the s3 protocol object
+    fs = fsspec.filesystem('s3', anon=True)
+
+    # find valid dates
+    if date is None:
+        dirs_list = fs.glob(bucket_prefix + '*')
+        dstring_list = [d.replace(bucket_prefix, '') for d in dirs_list]
+        dlist = [pd.to_datetime(d).strftime('%Y-%m-%d') for d in dstring_list]
+        return(dlist)
+
+    # find valid forecast release time
+    dstring = pd.to_datetime(date).strftime('%Y%m%d')
+    if fhr is None:
+        search_root = bucket_prefix + dstring + '/'
+        dirs_list = fs.glob(search_root + '*')
+        fhr_list = [int(d.replace(search_root, '')) for d in dirs_list]
+        return(fhr_list)
+
+    # find valid forecast hours
+    fhr = int(fhr)
+    search_root = bucket_prefix + dstring + '/' + str(fhr).zfill(2) + '/core/'
+    file_prefix = 'blend.t' + str(fhr).zfill(2) + 'z.core.f'
+    search_suffix = '.' + product + '.grib2.idx'
+    files_list = fs.glob(search_root + file_prefix + '*' + search_suffix)
+    idx_list = [int(f.replace(search_suffix, '')[-3:]) for f in files_list]
+    return(idx_list)
+
+
+def get_nbm_variable_names(H=None, join=True):
+    """
+    Returns a list of variable names to use with a Herbie object
 
     Herbie requests can be for a subset of variables in the file, but we
     need to know the variable names (and the appropriate regexp) ahead of
@@ -44,7 +101,7 @@ def get_variable_names(H, join=True):
     """
     # handle list input
     if isinstance(H, list):
-        out_df = [get_variable_names(h) for h in H]
+        out_df = [get_nbm_variable_names(h) for h in H]
         if join:
             out_df = pd.concat(out_df).drop_duplicates()
         return(out_df)
@@ -279,7 +336,7 @@ def H2x(H, times=[], simplify=True):
     herbie_dict = H_dict(H)
 
     # open the index file as a table
-    vnames = get_variable_names(H)
+    vnames = get_nbm_variable_names(H)
 
     # open the GRIB2 separately with pygrib and rioxarray
     grib_pyg = pygrib.open(str(H.local_grib_subset))
@@ -414,10 +471,11 @@ def get_nbm(
     # fetch a table of variable names for the first forecast time
     date_string = rdates[0].__str__()
     H_probe = Herbie(date_string, fxx=fxx, model='nbm', product=product)
-    vnames_all = get_variable_names(H_probe)
+    vnames_all = get_nbm_variable_names(H_probe)
 
     # handle variable name requests
     if len(vnames_toget) == 0:
+        print('returning dataframe of variable names')
         return(vnames_all)
 
     # define a regexp for Herbie to request these layers only
@@ -426,6 +484,7 @@ def get_nbm(
     search_expr = '^' + '$|^'.join(search_words) + '$'
 
     # download the day's GRIB2 files using Herbie package
+    print('accessing GRIB files using Herbie.tools.bulk_download')
     H = bulk_download(
         rdates,
         search_expr,
@@ -434,4 +493,5 @@ def get_nbm(
         product='co')
 
     # open as xarray, creating time dimensions/coordinate
+    print('opening GRIB files and building xarray')
     return(H2x(H, times=fdates, simplify=simplify))
