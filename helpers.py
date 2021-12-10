@@ -27,14 +27,15 @@ def get_nbm_times(date=None, fhr=None, product='co'):
     dates and fhr)
 
     If date is not supplied, the function returns all dates for
-    which there is a subdirectory in the AWS bucket (as a list of strings).
+    which there is a subdirectory in the AWS bucket (as an array).
 
-    If date but not fhr is supplied, the function returns a list of integers
+    If date but not fhr is supplied, the function returns an array of integers
     corresponding to the forecast time subdirectories found in /blend.{date}
 
-    If both date and fhr are supplied, the function returns a list of integers
-    corresponding to all forecast hours for which there is a *.grib2.idx (GRIB
-    index) file. These files should be accesible using Herbie.
+    If both date and fhr are supplied, the function returns an array of
+    integers corresponding to all forecast hours for which there is a
+    *.grib2.idx (GRIB index) file. These files should be accesible using
+    Herbie.
 
     Arguments
     ----------
@@ -44,7 +45,7 @@ def get_nbm_times(date=None, fhr=None, product='co'):
 
     Return
     ----------
-    A list of date strings or integers (see above)
+    A numpy array of date strings or integers representing hours (see above)
     """
     # define the bucket name and a directory prefix to search for
     bucket_prefix = 'noaa-nbm-grib2-pds' + '/blend.'
@@ -57,7 +58,7 @@ def get_nbm_times(date=None, fhr=None, product='co'):
         dirs_list = fs.glob(bucket_prefix + '*')
         dstring_list = [d.replace(bucket_prefix, '') for d in dirs_list]
         dlist = [pd.to_datetime(d).strftime('%Y-%m-%d') for d in dstring_list]
-        return(dlist)
+        return(numpy.array(dlist))
 
     # find valid forecast release time
     dstring = pd.to_datetime(date).strftime('%Y%m%d')
@@ -65,7 +66,7 @@ def get_nbm_times(date=None, fhr=None, product='co'):
         search_root = bucket_prefix + dstring + '/'
         dirs_list = fs.glob(search_root + '*')
         fhr_list = [int(d.replace(search_root, '')) for d in dirs_list]
-        return(fhr_list)
+        return(numpy.array(fhr_list))
 
     # find valid forecast hours
     fhr = int(fhr)
@@ -74,10 +75,10 @@ def get_nbm_times(date=None, fhr=None, product='co'):
     search_suffix = '.' + product + '.grib2.idx'
     files_list = fs.glob(search_root + file_prefix + '*' + search_suffix)
     idx_list = [int(f.replace(search_suffix, '')[-3:]) for f in files_list]
-    return(idx_list)
+    return(numpy.array(idx_list))
 
 
-def get_nbm_variable_names(H=None, join=True):
+def get_nbm_variable_names(H, join=True):
     """
     Returns a list of variable names to use with a Herbie object
 
@@ -85,13 +86,20 @@ def get_nbm_variable_names(H=None, join=True):
     need to know the variable names (and the appropriate regexp) ahead of
     time. This function produces a dataframe with this information.
 
-    H can be a list of Herbie class objects, in which case the function
-    returns the corresponding list of dataframes; or if join=True, a single
-    table containing all unique variable names discovered.
+    Specify the GRIB2 file of interest by passing a Herbie class object or a
+    list of them. In the case of list input, the function returns the
+    corresponding list of dataframes - or, if join=True, a single table
+    containing all unique variable names discovered.
+
+    Alternatively, a dictionary (or list of them) containing key "date", and
+    optionally "fhr", "fxx" (with default 1), "product" (with default 'co')
+    can be passed as H, and the function will create the Herbie object
+    internally. If "fhr" is not supplied, the function attempts to extract it
+    from "date" or otherwise sets default fhr=0
 
     Arguments
     ----------
-    H = a Herbie class object or list of them
+    H = a Herbie class object or dictionary, or list of them
     join = boolean, indicates to concatenate list output into single dataframe
 
     Return
@@ -105,6 +113,35 @@ def get_nbm_variable_names(H=None, join=True):
         if join:
             out_df = pd.concat(out_df).drop_duplicates()
         return(out_df)
+
+    # handle dictionary input
+    if isinstance(H, dict):
+
+        # check for invalid input and create datetime object from date
+        if 'date' not in H: 
+            raise Exception('dictionary H must contain key "date"')
+        date = pd.to_datetime(H['date'])
+
+        # set defaults and coerce hours to integers
+        H['fxx'] = 1 if 'fxx' not in H else int(H['fxx'])
+        H['product'] = 'co' if 'product' not in H else H['product']   
+        H['fhr'] = date.time().hour if 'fhr' not in H else int(H['fhr'])
+
+        # define date string for Herbie call and instantiate
+        hour_string = str(H['fhr']).zfill(2) + ':00'
+        date_string = date.strftime('%Y-%m-%d') + ' ' + hour_string
+        H_out = Herbie(
+            date_string,
+            fxx=H['fxx'],
+            model='nbm',
+            product=H['product'])
+
+        # raise an error if the file is not found, otherwise do recursive call
+        if H_out.grib is None:
+            t_info = date_string + ', fxx=' + str(H['fxx'])
+            p_info = ' (' + H['product'] + ')'
+            raise Exception('file not found for input ' + t_info + p_info)
+        return(get_nbm_variable_names(H_out))
 
     # define relevant column names
     naming_keys = ['variable', 'level', 'forecast_time', 'prob']
