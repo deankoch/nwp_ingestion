@@ -145,7 +145,7 @@ vnames_toget = {
 #
 # We will ultimately want to store all of the hourly forecasts,
 # fhr = [0, 1, ... 23], from the earliest available date to present. But for
-# illustration purposes we stick to just the earliest 2 dates:
+# illustration purposes we show how this is done with the earliest 2 dates:
 example_enddate = earliest_date + datetime.timedelta(2)
 dates = pd.date_range(earliest_date, example_enddate, freq='D')
 fhr = list(range(0, 23+1))
