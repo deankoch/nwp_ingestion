@@ -173,7 +173,7 @@ x = xarray.open_dataset('test_xarray.nc', decode_coords=True)
 print(x)
 
 # plot an example (temperature on the first time in the series)
-x['TMP_2_m_above_ground_1_hour_fcst'][0,:,:].plot()
+xdata['TMP_2_m_above_ground_1_hour_fcst'][0,:,:].plot()
 
 # %%
 '''----------------- Area of interest ----------------'''
@@ -196,17 +196,11 @@ maxy = aoi_bbox['maxy']
 
 # clip to AOI and save a copy as netcdf
 xdata_clipped = xdata.rio.clip_box(minx, miny, maxx, maxy)
-xdata.to_netcdf('test_xarray2.nc')
+xdata_clipped.to_netcdf('test_xarray2.nc')
 
 # %%
-# plot an example (first 24 hours in series for precip)
-example_tseries = xdata_clipped['APCP_surface_01_hour_acc_fcst'][fhr, :, :]
-example_tseries.plot(col='time', col_wrap=4)
-
-# %%
-# plot an example (first 24 hours in series for precip)
-vname = list(vnames_toget)[4]
-example_tseries = xdata_clipped[vname][fhr,:,:]
+# plot an example (first 24 hours in series for solar radiation)
+example_tseries = xdata_clipped['DSWRF_surface_1_hour_fcst'][fhr, :, :]
 example_tseries.plot(col='time', col_wrap=4)
 
 
