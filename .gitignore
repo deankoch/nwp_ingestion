@@ -54,3 +54,5 @@ R/
 
 # test files
 test_xarray*.nc
+.Rproj.user
+data/
