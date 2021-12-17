@@ -34,6 +34,20 @@ However there are problems currently with Herbie that prevent me using it to ope
 
 [helpers.py](https://github.com/deankoch/nwp_ingestion/blob/main/helpers.py) includes functions for processing GRIB data downloaded by Herbie. It also loads the files in a different way, preserving more of their attributes. This is working well with NBM right now and I think it will be useful more generally with any kind of GRIB
 
+## Forecast schedule
+
+Different forecast predictions hours are released at different times throughout the day.
+This can get a bit confusing, so I wrote a script to compile a table of all available
+forecasts by date/time of publication. See [list_available_nbm_forecasts.py](https://github.com/deankoch/nwp_ingestion/blob/main/list_available_nbm_forecasts.py).
+
+Here is an example of what this looks like over a typical two-day window (blue indicates
+the forecast time is available for download):
+
+<img src="https://raw.githubusercontent.com/deankoch/nwp_ingestion/main/fxx_sample.png"></img>
+
+Each hour a new batch of forecast files is released, comprising hourly predictions for at least the next 36 hours (the solid block of blue on the left). Every 6 hours (starting at 1am UTC), a full 264 hour long (11 day) batch of hourly predictions are generated (horizontal
+bands of blue). At the other hours of the day, the forecast intervals become more sparse
+beyond the 36 hour point (every 3 hours, then every 6 hours).
 
 ## Challenges going forward:
 
