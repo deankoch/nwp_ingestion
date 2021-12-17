@@ -39,7 +39,7 @@ def get_nbm_times(date=None, fhr=None, product='co'):
 
     Arguments
     ----------
-    date = any date-like object understood by pd.to_datetime
+    date = a date understood by pd.to_datetime
     fhr = any object coercible to an integer by int(). Must be in [0,...23]
     product = one of 'co', 'ak', etc
 
@@ -65,7 +65,12 @@ def get_nbm_times(date=None, fhr=None, product='co'):
     if fhr is None:
         search_root = bucket_prefix + dstring + '/'
         dirs_list = fs.glob(search_root + '*')
-        fhr_list = [int(d.replace(search_root, '')) for d in dirs_list]
+        fhr_list = []
+        for d in dirs_list:
+            integer_string = d.replace(search_root, '')
+            # this test omits non-standard directories
+            if integer_string.isdigit():
+                fhr_list.append(int(integer_string))
         return(numpy.array(fhr_list))
 
     # find valid forecast hours
@@ -461,7 +466,7 @@ def get_nbm(
 
     Arguments
     ----------
-    dates = the requested forecast release dates, as a string
+    dates = the requested forecast release dates
     fhr = a list of forecast release hours to download
     vnames_toget = a set of requested variable name strings
     fxx = (integer) forecast hour, one of 1, ... 23
