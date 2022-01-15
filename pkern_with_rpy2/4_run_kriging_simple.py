@@ -197,8 +197,8 @@ Rvario = R.r['pkern_vario'](Rgsnap, Rsgdata)
 # from model fitting by setting a maximum distance "dmax" in the next
 # function call (with units meters).   
 
-# in R: fit a theoretical Matern X Matern variogram, excluding lags > 10km
-dmax = 10 * 1000
+# in R: fit a theoretical Matern X Matern variogram, excluding lags > 25km
+dmax = 25 * 1000
 Rpvario = R.r['pkern_vario_fit'](
     Rvario, 
     ypars='mat',
@@ -208,7 +208,7 @@ Rpvario = R.r['pkern_vario_fit'](
 # report fitted parameters then (in R) print variogram results to png file
 print(Rpvario)
 plotpars = R.r['setNames'](R.r['list'](dmax), 'dmax')
-R.r['png'](img_vario_path)
+R.r['png'](img_vario_path, height=600, width=800, units='px')
 R.r['pkern_vario_plot'](Rvario, Rpvario, plotpars=plotpars)
 R.r['dev.off']()
 
@@ -216,7 +216,7 @@ R.r['dev.off']()
 # %%
 '''------- run the kriging algorithm --------'''
 
-# in R: krig on first time slice, convert output directly to numpy array
+# in R: krig on all time slices, convert output directly to numpy array
 krig_result = np.array(R.r['run_krig'](Rsgdata, Rgsnap, Rpvario))
 
 # reshape into vectorization order expected by xarray

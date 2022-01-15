@@ -10,7 +10,7 @@
 #
 # For this example I simply take the original temperature data grid
 # (pkern_examples/temperature_series.nc) and increase its resolution
-# by 4x.
+# by 10x.
 #
 # However the target grid can be configured however you like. In
 # another example script I'll show how to use an elevation raster
@@ -32,7 +32,7 @@ temperature_path = pkern_data_dir + '/temperature_series.nc'
 grid_out_path = pkern_data_dir + '/target_grid_simple.nc'
 
 # define a downscaling factor
-ds_fact = 4
+ds_fact = 10
 
 
 # %%
