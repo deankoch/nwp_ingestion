@@ -9,7 +9,9 @@
 # target_grid_simple.nc to testdata/pkern_examples
 #
 # For this example I simply take the original temperature data grid
-# (pkern_examples/temperature_series.nc) and double its resolution.
+# (pkern_examples/temperature_series.nc) and increase its resolution
+# by 4x.
+#
 # However the target grid can be configured however you like. In
 # another example script I'll show how to use an elevation raster
 # as a target grid.
