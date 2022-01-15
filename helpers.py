@@ -198,6 +198,7 @@ def simplify_dict(D):
             datetime.datetime,
             numpy.ndarray,
             pathlib.WindowsPath,
+            pathlib.PosixPath,
             pd.Timestamp)
         if isinstance(key_value, stype):
             D[key] = str(key_value)
