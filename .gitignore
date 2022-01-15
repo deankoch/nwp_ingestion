@@ -56,3 +56,4 @@ R/
 test_xarray*.nc
 .Rproj.user
 data/
+testdata/pkern_examples
